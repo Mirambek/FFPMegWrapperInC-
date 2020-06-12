@@ -1,0 +1,29 @@
+FROM jrottenberg/ffmpeg:4.1-centos
+
+RUN     yum -y install sudo
+RUN     yum -y install dnf
+
+RUN sudo dnf -y  install dotnet-sdk-3.1
+
+RUN curl -s https://packagecloud.io/install/repositories/rabbitmq/rabbitmq-server/script.rpm.sh | sudo bash
+
+RUN sudo yum makecache -y --disablerepo='*' --enablerepo='rabbitmq_rabbitmq-server'
+RUN sudo yum update -y
+RUN sudo yum install epel-release -y
+RUN sudo yum -y install rabbitmq-server
+RUN mkdir /usr/local/video_converter
+RUN printf "#!/bin/bash\nsudo rabbitmq-server &" > /usr/local/run1.sh
+RUN printf "dotnet run --project /usr/local/video_converter/VideoConverter >/usr/local/result.txt&\ndotnet run --project /usr/local/video_converter/Videos.Sender >/usr/local/result1.txt &" > /usr/local/run2.sh
+RUN printf "/usr/local/run1.sh &\n/usr/local/run2.sh \n/bin/bash" > /usr/local/run.sh
+RUN ["chmod", "+x", "/usr/local/run.sh"]
+RUN ["chmod", "+x", "/usr/local/run1.sh"]
+RUN ["chmod", "+x", "/usr/local/run2.sh"]
+ENTRYPOINT ["/usr/local/run.sh"]
+#docker build -t video_converter .
+#docker run -v %cd%:/usr/local/video_converter -it --rm -w="/usr/local/video_converter" --entrypoint /bin/bash video_converter
+
+
+#http://techslides.com/demos/sample-videos/small.mp4
+
+
+#ffmpeg -i http://techslides.com/demos/sample-videos/small.mp4 -vf scale=-1:720 -c:v libx264 -crf 0 -preset veryslow -c:a copy MyMovie_720p.mkv
